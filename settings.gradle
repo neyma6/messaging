@@ -1,0 +1,8 @@
+rootProject.name = 'messaging'
+
+include 'chatHistoryService'
+include 'messageDispacher'
+include 'messageService'
+include 'messagingService'
+include 'serviceRegistryService'
+include 'userService'

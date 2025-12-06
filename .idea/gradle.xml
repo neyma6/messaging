@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="GradleSettings">
+    <option name="linkedExternalProjectsSettings">
+      <GradleProjectSettings>
+        <option name="externalProjectPath" value="$PROJECT_DIR$" />
+        <option name="gradleJvm" value="homebrew-21" />
+        <option name="modules">
+          <set>
+            <option value="$PROJECT_DIR$" />
+            <option value="$PROJECT_DIR$/chatHistoryService" />
+            <option value="$PROJECT_DIR$/messageDispacher" />
+            <option value="$PROJECT_DIR$/messageService" />
+            <option value="$PROJECT_DIR$/messagingService" />
+            <option value="$PROJECT_DIR$/serviceRegistryService" />
+            <option value="$PROJECT_DIR$/userService" />
+          </set>
+        </option>
+      </GradleProjectSettings>
+    </option>
+  </component>
+</project>
