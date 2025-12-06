@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UserResponse {
+    private java.util.UUID id;
     private String name;
     private String email;
     private LocalDateTime lastLoginTime;

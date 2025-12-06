@@ -1,3 +1,22 @@
 spring:
   application:
     name: chatHistoryService
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:destdb}
+    username: ${DB_USER:destuser}
+    password: ${DB_PASSWORD:destpassword123}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    baseline-on-migrate: true
+    validate-on-migrate: false
+  cassandra:
+    contact-points: ${CASSANDRA_CONTACT_POINTS:localhost}
+    port: ${CASSANDRA_PORT:9042}
+    keyspace-name: ${CASSANDRA_KEYSPACE:chat}
+    local-datacenter: ${CASSANDRA_LOCAL_DATACENTER:datacenter1}
+    schema-action: create_if_not_exists
+    request:
+      timeout: 10s

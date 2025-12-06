@@ -12,8 +12,13 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 
+import jakarta.persistence.Index;
+
 @Entity
-@Table(name = "users")
+@Table(name = "users", indexes = {
+        @Index(name = "idx_users_email", columnList = "email"),
+        @Index(name = "idx_users_name", columnList = "name")
+})
 @Data
 @Builder
 @NoArgsConstructor
@@ -21,9 +26,9 @@ import java.time.LocalDateTime;
 public class User {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "user_id")
-    private Long id;
+    private java.util.UUID id;
 
     private String name;
 

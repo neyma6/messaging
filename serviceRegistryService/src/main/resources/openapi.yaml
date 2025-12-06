@@ -1,0 +1,51 @@
+openapi: 3.0.3
+info:
+  title: Service Registry Service API
+  description: API for managing service registration and user-service assignments
+  version: 1.0.0
+servers:
+  - url: http://localhost:8081
+    description: Local server
+paths:
+  /registry/service/{serviceId}:
+    post:
+      summary: Register a service
+      description: Registers a service instance as available.
+      operationId: registerService
+      parameters:
+        - name: serviceId
+          in: path
+          description: The ID of the service to register
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Service registered successfully
+  /registry/user/{userId}:
+    get:
+      summary: Get assigned service ID
+      description: |
+        Retrieves the service ID assigned to a user. 
+        If no service is assigned, one is randomly assigned from the available pool.
+      operationId: getServiceId
+      parameters:
+        - name: userId
+          in: path
+          description: The ID of the user requesting a service
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Successfully retrieved assigned service ID
+          content:
+            application/json:
+              schema:
+                type: integer
+                format: int64
+                description: The ID of the assigned service
+        '500':
+          description: No services available to assign

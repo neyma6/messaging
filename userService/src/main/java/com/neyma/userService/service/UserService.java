@@ -54,8 +54,23 @@ public class UserService {
         return mapToUserResponse(savedUser);
     }
 
+    public java.util.List<UserResponse> findUsers(String query) {
+        return userRepository.findTop20ByNameContainingIgnoreCaseOrEmailContainingIgnoreCase(query, query)
+                .stream()
+                .map(this::mapToUserResponse)
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    public UserResponse getUserById(java.util.UUID id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new com.neyma.userService.exception.UserNotFoundException(
+                        "User not found with id: " + id));
+        return mapToUserResponse(user);
+    }
+
     private UserResponse mapToUserResponse(User user) {
         return UserResponse.builder()
+                .id(user.getId())
                 .name(user.getName())
                 .email(user.getEmail())
                 .lastLoginTime(user.getLastLoginTime())
