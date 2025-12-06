@@ -1,0 +1,144 @@
+openapi: 3.0.3
+info:
+  title: User Service API
+  description: API for managing users, including registration and login.
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080
+    description: Local server
+paths:
+  /users/register:
+    post:
+      summary: Register a new user
+      description: Creates a new user account with the provided name, email, and password.
+      operationId: register
+      requestBody:
+        description: User registration details
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: User successfully registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+                example:
+                  email: "must be a well-formed email address"
+                  password: "Password is required"
+        '409':
+          description: User with the given email already exists
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: User with email example@test.com already exists
+        '415':
+          description: Unsupported Media Type
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "Content-Type 'text/plain;charset=UTF-8' is not supported. Please use 'Content-Type: application/json'"
+  /users/login:
+    post:
+      summary: Login user
+      description: Authenticates a user with email and password.
+      operationId: login
+      requestBody:
+        description: User login credentials
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: User successfully logged in
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+                example:
+                  email: "must be a well-formed email address"
+        '401':
+          description: Invalid email or password
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: Invalid email or password
+        '415':
+          description: Unsupported Media Type
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "Content-Type 'text/plain;charset=UTF-8' is not supported. Please use 'Content-Type: application/json'"
+components:
+  schemas:
+    RegisterRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          example: John Doe
+        email:
+          type: string
+          format: email
+          example: john.doe@example.com
+        password:
+          type: string
+          format: password
+          example: securepassword123
+      required:
+        - name
+        - email
+        - password
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          example: john.doe@example.com
+        password:
+          type: string
+          format: password
+          example: securepassword123
+      required:
+        - email
+        - password
+    UserResponse:
+      type: object
+      properties:
+        name:
+          type: string
+          example: John Doe
+        email:
+          type: string
+          format: email
+          example: john.doe@example.com
+        lastLoginTime:
+          type: string
+          format: date-time
+          example: '2023-10-27T10:00:00Z'

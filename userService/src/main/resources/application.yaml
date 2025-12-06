@@ -1,3 +1,8 @@
 spring:
   application:
     name: userService
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:destdb}
+    username: ${DB_USER:destuser}
+    password: ${DB_PASSWORD:destpassword123}
+    driver-class-name: org.postgresql.Driver

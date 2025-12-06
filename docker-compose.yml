@@ -1,0 +1,37 @@
+services:
+  user-service:
+    build:
+      context: .
+      dockerfile: userService/Dockerfile
+    container_name: user-service
+    ports:
+      - "8080:8080"
+    environment:
+      - DB_HOST=user-db
+      - DB_PORT=5432
+      - DB_NAME=destdb
+      - DB_USER=destuser
+      - DB_PASSWORD=destpassword123
+    depends_on:
+      user-db:
+        condition: service_healthy
+
+  user-db:
+    image: postgres:16-alpine
+    container_name: user-db
+    environment:
+      - POSTGRES_DB=destdb
+      - POSTGRES_USER=destuser
+      - POSTGRES_PASSWORD=destpassword123
+    ports:
+      - "5432:5432"
+    volumes:
+      - user-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U destuser -d destdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  user-db-data:

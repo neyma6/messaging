@@ -1,31 +1,23 @@
+# Gradle
 .gradle
-build
-out
-.idea
-*.ipr
-*.iws
+build/
+!wrapper/gradle-wrapper.jar
+
+# IDE
+.idea/
 *.iml
-.DS_Store
-.classpath
+*.iws
 .project
-.settings
-bin
+.classpath
+.settings/
+
+# Build output
+out/
+target/
+
+# Log files
 *.log
-tmp
-*.tmp
-*.jar
-*.war
-*.ear
-target
-.vscode
-/dist
-/nbbuild
-/nbdist
-/.nb-gradle
-.apt_generated
-.springBeans
-.sts4-cache
-gradle/wrapper/gradle-wrapper.properties
-!gradle/wrapper/gradle-wrapper.jar
-!gradlew
-!gradlew.bat
+
+# Operating System files
+.DS_Store
+Thumbs.db
