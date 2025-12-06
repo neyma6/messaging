@@ -17,6 +17,8 @@ springdoc:
   swagger-ui:
     path: /swagger-ui.html
     urls:
+      - name: api-gateway
+        url: /v3/api-docs
       - name: user-service
         url: /users/v3/api-docs
       - name: service-registry-service
