@@ -10,6 +10,7 @@ build/
 .project
 .classpath
 .settings/
+.vscode
 
 # Build output
 out/
