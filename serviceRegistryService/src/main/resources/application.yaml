@@ -1,7 +1,12 @@
 spring:
   application:
-    name:
+    name: serviceRegistryService
   data:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
+springdoc:
+  api-docs:
+    path: /registry/v3/api-docs
+server:
+  forward-headers-strategy: framework

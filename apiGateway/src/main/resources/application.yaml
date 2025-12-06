@@ -1,0 +1,23 @@
+spring:
+  application:
+    name: apiGateway
+  cloud:
+    gateway:
+      routes:
+        - id: user-service
+          uri: ${USER_SERVICE_URL:http://user-service:8080}
+          predicates:
+            - Path=/users/**
+        - id: service-registry-service
+          uri: ${SERVICE_REGISTRY_URL:http://service-registry-service:8080}
+          predicates:
+            - Path=/registry/**
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    urls:
+      - name: user-service
+        url: /users/v3/api-docs
+      - name: service-registry-service
+        url: /registry/v3/api-docs

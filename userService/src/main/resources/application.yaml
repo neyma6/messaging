@@ -2,10 +2,15 @@ spring:
   application:
     name: userService
   datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:destdb}
-    username: ${DB_USER:destuser}
-    password: ${DB_PASSWORD:destpassword123}
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:userdb}
+    username: ${DB_USER:userdbuser}
+    password: ${DB_PASSWORD:userdbpassword123}
     driver-class-name: org.postgresql.Driver
   flyway:
     baseline-on-migrate: true
     validate-on-migrate: false
+springdoc:
+  api-docs:
+    path: /users/v3/api-docs
+server:
+  forward-headers-strategy: framework

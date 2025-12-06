@@ -6,3 +6,5 @@ include 'messageService'
 include 'messagingService'
 include 'serviceRegistryService'
 include 'userService'
+include 'apiGateway'
+
