@@ -24,6 +24,14 @@ public class ChatHistoryService {
     private final ChatRegistryRepository chatRegistryRepository;
     private final ChatRepository chatRepository;
     private final MessageRepository messageRepository;
+    private final com.neyma.chatHistoryService.client.api.MessageControllerApi messageControllerApi;
+
+    @Transactional
+    public void addUserToChat(UUID userId, UUID chatId) {
+        saveToRegistry(userId, chatId);
+        saveToChat(chatId, userId);
+        messageControllerApi.clearCache(chatId);
+    }
 
     @Transactional
     public UUID getChatId(UUID userId1, UUID userId2) {

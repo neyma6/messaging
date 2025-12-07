@@ -46,4 +46,13 @@ public class ChatHistoryController {
             @Parameter(description = "End time (ISO-8601)") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to) {
         return ResponseEntity.ok(chatHistoryService.getMessages(chatId, from, to));
     }
+
+    @Operation(summary = "Add User to Chat", description = "Adds a user to a specific chat")
+    @PostMapping("/chat/{chatId}/user/{userId}")
+    public ResponseEntity<Void> addUserToChat(
+            @Parameter(description = "ID of the chat") @PathVariable UUID chatId,
+            @Parameter(description = "ID of the user") @PathVariable UUID userId) {
+        chatHistoryService.addUserToChat(userId, chatId);
+        return ResponseEntity.ok().build();
+    }
 }

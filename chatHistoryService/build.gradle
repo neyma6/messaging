@@ -1,3 +1,7 @@
+plugins {
+    id 'org.openapi.generator' version '7.1.0'
+}
+
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
@@ -9,4 +13,29 @@ dependencies {
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.3.0'
+    implementation 'org.openapitools:jackson-databind-nullable:0.2.6'
+    implementation 'io.swagger.core.v3:swagger-annotations:2.2.19'
+    implementation 'com.google.code.findbugs:jsr305:3.0.2'
+}
+
+openApiGenerate {
+    generatorName = "java"
+    inputSpec = "$projectDir/src/main/resources/message-service-api.yaml".toString()
+    outputDir = "$buildDir/generated".toString()
+    apiPackage = "com.neyma.chatHistoryService.client.api"
+    modelPackage = "com.neyma.chatHistoryService.client.model"
+    configOptions = [
+        library: "resttemplate",
+        useJakartaEe: "true",
+        openApiNullable: "false",
+        dateLibrary: "java8"
+    ]
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir "$buildDir/generated/src/main/java"
+        }
+    }
 }
