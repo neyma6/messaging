@@ -1,3 +1,39 @@
+plugins {
+    id "org.openapi.generator" version "7.1.0"
+}
+
 dependencies {
-	// Add any specific dependencies for messageService here
+    implementation 'org.springframework.boot:spring-boot-starter-webflux'
+    implementation 'io.swagger.core.v3:swagger-annotations:2.2.19'
+    implementation 'com.google.code.findbugs:jsr305:3.0.2'
+    implementation 'org.openapitools:jackson-databind-nullable:0.2.6'
+    implementation 'jakarta.annotation:jakarta.annotation-api'
+    implementation 'jakarta.validation:jakarta.validation-api'
+    implementation 'org.springframework.boot:spring-boot-starter-data-cassandra'
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis-reactive'
+    implementation 'org.springdoc:springdoc-openapi-starter-webflux-ui:2.3.0'
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+}
+
+openApiGenerate {
+    generatorName = "java"
+    library = "webclient"
+    inputSpec = "$projectDir/src/main/resources/chat-history-api.yml"
+    outputDir = "$projectDir/build/generated"
+    apiPackage = "com.neyma.messageService.client.api"
+    modelPackage = "com.neyma.messageService.client.model"
+    configOptions = [
+        dateLibrary: "java8",
+        useJakartaEe: "true",
+        openApiNullable: "false"
+    ]
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir "$projectDir/build/generated/src/main/java"
+        }
+    }
 }

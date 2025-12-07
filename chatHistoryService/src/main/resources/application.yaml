@@ -20,3 +20,9 @@ spring:
     schema-action: create_if_not_exists
     request:
       timeout: 10s
+
+springdoc:
+  api-docs:
+    path: /history/v3/api-docs
+server:
+  forward-headers-strategy: framework

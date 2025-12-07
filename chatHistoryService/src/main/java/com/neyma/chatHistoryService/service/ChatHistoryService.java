@@ -55,8 +55,8 @@ public class ChatHistoryService {
         return new ChatParticipantsResponse(chatId, userIds);
     }
 
-    public List<Message> getMessages(UUID chatId, LocalDateTime messageTime) {
-        return messageRepository.findByChatIdAndMessageTimeGreaterThanEqual(chatId, messageTime);
+    public List<Message> getMessages(UUID chatId, LocalDateTime from, LocalDateTime to) {
+        return messageRepository.findByChatIdAndMessageTimeBetween(chatId, from, to);
     }
 
     private void saveToRegistry(UUID userId, UUID chatId) {

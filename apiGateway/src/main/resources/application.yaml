@@ -11,7 +11,16 @@ spring:
         - id: service-registry-service
           uri: ${SERVICE_REGISTRY_URL:http://service-registry-service:8080}
           predicates:
+
             - Path=/registry/**
+        - id: chat-history-service
+          uri: ${CHAT_HISTORY_SERVICE_URL:http://chat-history-service:8080}
+          predicates:
+            - Path=/history/**
+        - id: message-service
+          uri: ${MESSAGE_SERVICE_URL:http://message-service:8080}
+          predicates:
+            - Path=/message/**
 
 springdoc:
   swagger-ui:
@@ -23,3 +32,7 @@ springdoc:
         url: /users/v3/api-docs
       - name: service-registry-service
         url: /registry/v3/api-docs
+      - name: chat-history-service
+        url: /history/v3/api-docs
+      - name: message-service
+        url: /message/v3/api-docs

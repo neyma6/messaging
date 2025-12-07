@@ -97,7 +97,8 @@ class ChatHistoryServiceTest {
 
     @Test
     void getMessages_ReturnsMessagesFromTimeRange() {
-        LocalDateTime messageTime = LocalDateTime.now().minusHours(1);
+        LocalDateTime from = LocalDateTime.now().minusHours(1);
+        LocalDateTime to = from.plusHours(2);
         Message message1 = Message.builder()
                 .chatId(chatId)
                 .userId(userId1)
@@ -111,22 +112,23 @@ class ChatHistoryServiceTest {
                 .messageTime(LocalDateTime.now())
                 .build();
 
-        when(messageRepository.findByChatIdAndMessageTimeGreaterThanEqual(chatId, messageTime))
+        when(messageRepository.findByChatIdAndMessageTimeBetween(chatId, from, to))
                 .thenReturn(List.of(message1, message2));
 
-        List<Message> result = chatHistoryService.getMessages(chatId, messageTime);
+        List<Message> result = chatHistoryService.getMessages(chatId, from, to);
 
         assertEquals(2, result.size());
-        verify(messageRepository).findByChatIdAndMessageTimeGreaterThanEqual(chatId, messageTime);
+        verify(messageRepository).findByChatIdAndMessageTimeBetween(chatId, from, to);
     }
 
     @Test
     void getMessages_ReturnsEmptyListWhenNoMessages() {
-        LocalDateTime messageTime = LocalDateTime.now();
-        when(messageRepository.findByChatIdAndMessageTimeGreaterThanEqual(chatId, messageTime))
+        LocalDateTime from = LocalDateTime.now();
+        LocalDateTime to = from.plusHours(1);
+        when(messageRepository.findByChatIdAndMessageTimeBetween(chatId, from, to))
                 .thenReturn(List.of());
 
-        List<Message> result = chatHistoryService.getMessages(chatId, messageTime);
+        List<Message> result = chatHistoryService.getMessages(chatId, from, to);
 
         assertTrue(result.isEmpty());
     }

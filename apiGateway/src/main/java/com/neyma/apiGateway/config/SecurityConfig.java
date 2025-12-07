@@ -35,8 +35,8 @@ public class SecurityConfig {
                 .authorizeExchange(exchanges -> exchanges
                         .pathMatchers("/users/login", "/users/register").permitAll()
                         .pathMatchers("/gateway/auth/refresh").permitAll() // Refresh endpoint
-                        .pathMatchers("/swagger-ui.html", "/webjars/**", "/v3/api-docs/**", "/users/v3/api-docs",
-                                "/registry/v3/api-docs")
+                        .pathMatchers("/swagger-ui.html", "/webjars/**", "/v3/api-docs/**", "/users/v3/**",
+                                "/registry/v3/**", "/history/v3/**", "/message/v3/**")
                         .permitAll()
                         .anyExchange().authenticated())
                 .addFilterAt(authenticationWebFilter, SecurityWebFiltersOrder.AUTHENTICATION);

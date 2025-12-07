@@ -87,6 +87,29 @@ services:
       cassandra:
         condition: service_healthy
 
+  message-service:
+    build:
+      context: .
+      dockerfile: messageService/Dockerfile
+    container_name: message-service
+    ports:
+      - "8084:8080"
+    environment:
+      - CASSANDRA_CONTACT_POINTS=cassandra
+      - CASSANDRA_PORT=9042
+      - CASSANDRA_KEYSPACE=chat
+      - CASSANDRA_LOCAL_DATACENTER=datacenter1
+      - API_GATEWAY_URL=http://api-gateway:8080
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      cassandra:
+        condition: service_healthy
+      api-gateway:
+        condition: service_started
+      redis:
+        condition: service_started
+
   chat-history-db:
     image: postgres:16-alpine
     container_name: chat-history-db

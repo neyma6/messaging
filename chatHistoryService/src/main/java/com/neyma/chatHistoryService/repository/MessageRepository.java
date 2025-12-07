@@ -11,5 +11,6 @@ import java.util.UUID;
 public interface MessageRepository extends CassandraRepository<Message, UUID> {
     List<Message> findByChatId(UUID chatId);
 
-    List<Message> findByChatIdAndMessageTimeGreaterThanEqual(UUID chatId, java.time.LocalDateTime messageTime);
+    List<Message> findByChatIdAndMessageTimeBetween(UUID chatId, java.time.LocalDateTime from,
+            java.time.LocalDateTime to);
 }

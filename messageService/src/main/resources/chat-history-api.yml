@@ -1,0 +1,141 @@
+openapi: 3.0.1
+info:
+  title: Chat History Service
+  description: API for managing chat history
+  version: "1.0"
+servers:
+- url: http://localhost:8080
+  description: Generated server url
+security:
+- bearerAuth: []
+tags:
+- name: Chat History
+  description: API for retrieving chat history and participants
+paths:
+  /history/messages:
+    get:
+      tags:
+      - Chat History
+      summary: Get Messages
+      description: Get messages for a chat within a time range
+      operationId: getMessages
+      parameters:
+      - name: chatId
+        in: query
+        description: ID of the chat
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: from
+        in: query
+        description: Start time (ISO-8601)
+        required: true
+        schema:
+          type: string
+          format: date-time
+      - name: to
+        in: query
+        description: End time (ISO-8601)
+        required: true
+        schema:
+          type: string
+          format: date-time
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Message"
+  /history/chat:
+    get:
+      tags:
+      - Chat History
+      summary: Get Chat ID
+      description: "Get common chat ID for two users, creating one if it doesn't exist"
+      operationId: getChatId
+      parameters:
+      - name: userId1
+        in: query
+        description: ID of the first user
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: userId2
+        in: query
+        description: ID of the second user
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: string
+                format: uuid
+  /history/chat/{chatId}/participants:
+    get:
+      tags:
+      - Chat History
+      summary: Get Chat Participants
+      description: Get list of user IDs participating in a chat
+      operationId: getChatParticipants
+      parameters:
+      - name: chatId
+        in: path
+        description: ID of the chat
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ChatParticipantsResponse"
+components:
+  schemas:
+    Message:
+      type: object
+      properties:
+        chatId:
+          type: string
+          format: uuid
+        messageTime:
+          type: string
+          format: date-time
+        messageId:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        messageContent:
+          type: string
+        messageSent:
+          type: string
+    ChatParticipantsResponse:
+      type: object
+      properties:
+        chatId:
+          type: string
+          format: uuid
+        userIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
