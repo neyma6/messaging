@@ -1,6 +1,6 @@
 # Messenger UI
 
-React + Vite application for Neyma Messenger.
+React + Vite application for Messenger.
 
 ## Features
 - Login / Register

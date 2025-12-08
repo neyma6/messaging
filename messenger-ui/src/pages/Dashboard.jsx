@@ -15,6 +15,11 @@ export default function Dashboard() {
     const messagesEndRef = useRef(null);
     const wsRef = useRef(null);
     const selectedChatRef = useRef(null);
+    const chatsRef = useRef([]);
+
+    useEffect(() => {
+        chatsRef.current = chats;
+    }, [chats]);
 
     useEffect(() => {
         selectedChatRef.current = selectedChat;
@@ -62,10 +67,32 @@ export default function Dashboard() {
             const socket = new WebSocket(wsUrl);
 
             socket.onopen = () => console.log('WebSocket Connected');
-            socket.onmessage = (event) => {
+            socket.onmessage = async (event) => {
                 try {
                     const msg = JSON.parse(event.data);
-                    // Check if msg belongs to current chat
+
+                    // Check if chat exists in sidebar
+                    const existingChat = chatsRef.current.find(c => c.id === msg.chatId);
+
+                    if (!existingChat) {
+                        // New chat - fetch sender info and add to sidebar
+                        try {
+                            const senderId = msg.sender;
+                            if (senderId && senderId !== currentUser.id) {
+                                const userRes = await axios.get(`/api/users/${senderId}`);
+                                const newChat = {
+                                    id: msg.chatId,
+                                    name: userRes.data.name,
+                                    otherUserId: senderId
+                                };
+                                setChats(prev => [newChat, ...prev]);
+                            }
+                        } catch (e) {
+                            console.error('Error fetching sender info for new chat', e);
+                        }
+                    }
+
+                    // Add message if it belongs to selected chat
                     if (selectedChatRef.current && msg.chatId === selectedChatRef.current.id) {
                         setMessages(prev => [...prev, msg]);
                     }
@@ -199,7 +226,7 @@ export default function Dashboard() {
                 padding: '0 2rem', justifyContent: 'space-between', background: 'var(--bg-card)'
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', position: 'relative' }}>
-                    <h2 style={{ margin: 0, color: 'var(--primary)' }}>Neyma Messenger</h2>
+                    <h2 style={{ margin: 0, color: 'var(--primary)' }}>Messenger</h2>
                     <div style={{ position: 'relative' }}>
                         <div className="flex-center" style={{ background: 'var(--input-bg)', borderRadius: '20px', padding: '0.5rem 1rem' }}>
                             <Search size={18} style={{ marginRight: '0.5rem', color: 'var(--text-muted)' }} />
