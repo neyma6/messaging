@@ -1,3 +1,4 @@
+*note: This repo is under development
 # Messenger
 
 A distributed, real-time messaging platform built with microservices architecture. This application demonstrates modern software engineering practices including event-driven architecture, WebSocket communication, and containerized deployment.
