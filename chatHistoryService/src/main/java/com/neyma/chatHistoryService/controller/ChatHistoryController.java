@@ -47,6 +47,13 @@ public class ChatHistoryController {
         return ResponseEntity.ok(chatHistoryService.getMessages(chatId, from, to));
     }
 
+    @Operation(summary = "Get User Chats", description = "Get list of chat IDs for a user")
+    @GetMapping("/user/{userId}/chats")
+    public ResponseEntity<List<UUID>> getUserChats(
+            @Parameter(description = "ID of the user") @PathVariable UUID userId) {
+        return ResponseEntity.ok(chatHistoryService.getUserChats(userId));
+    }
+
     @Operation(summary = "Add User to Chat", description = "Adds a user to a specific chat")
     @PostMapping("/chat/{chatId}/user/{userId}")
     public ResponseEntity<Void> addUserToChat(

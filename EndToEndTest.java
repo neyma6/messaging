@@ -1,4 +1,3 @@
-
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -12,140 +11,120 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class EndToEndTest {
-    
-    // Config
+
     private static final String REGISTRY_URL = "http://localhost:8081/registry/user";
-    private static final String HISTORY_URL = "http://localhost:8082/history/chat";
-    
+    private static final String HISTORY_URL = "http://localhost:8082/history";
+
     public static void main(String[] args) throws Exception {
         System.out.println("Starting End-to-End Test...");
-        
         HttpClient client = HttpClient.newHttpClient();
-        
+
         UUID userA = UUID.randomUUID();
         UUID userB = UUID.randomUUID();
-        
         System.out.println("Generated User A: " + userA);
         System.out.println("Generated User B: " + userB);
-        
-        // 1. Create/Get Chat ID
+
+        // 1. Get Chat ID
         System.out.println("1. Getting Chat ID...");
-        String chatUri = HISTORY_URL + "?userId1=" + userA + "&userId2=" + userB;
+        String chatUri = HISTORY_URL + "/chat?userId1=" + userA + "&userId2=" + userB;
         HttpResponse<String> chatResp = client.send(
                 HttpRequest.newBuilder().uri(URI.create(chatUri)).GET().build(),
                 HttpResponse.BodyHandlers.ofString());
-        
+
         if (chatResp.statusCode() != 200) {
-            throw new RuntimeException("Failed to get chat ID. Status: " + chatResp.statusCode() + " Body: " + chatResp.body());
+            throw new RuntimeException("Chat ID failed: " + chatResp.statusCode() + " " + chatResp.body());
         }
-        
+
         String chatIdStr = chatResp.body().replace("\"", "").trim();
         System.out.println("Chat ID: " + chatIdStr);
-        // Validate UUID format
-        UUID.fromString(chatIdStr);
-        
-        // 2. Discover Messaging Service Address
+
+        // 2. Discover Address
         System.out.println("2. Querying Service Registry...");
         String addrA = getAddress(client, userA);
         String addrB = getAddress(client, userB);
-        
-        System.out.println("User A assigned to: " + addrA);
-        System.out.println("User B assigned to: " + addrB);
-        
-        // 3. Connect WebSockets
-        System.out.println("3. Connecting WebSockets...");
-        CountDownLatch latch = new CountDownLatch(2); // Expect 2 received messages (A->B, B->A)
-        
-        MessageListener listenerA = new MessageListener("A", latch);
-        MessageListener listenerB = new MessageListener("B", latch);
-        
-        WebSocket wsA = connect(client, addrA, userA, listenerA);
-        WebSocket wsB = connect(client, addrB, userB, listenerB);
-        
+        System.out.println("Addresses: " + addrA + " | " + addrB);
+
+        // 3. Connect WS
+        CountDownLatch latch = new CountDownLatch(2);
+        WebSocket wsA = connect(client, addrA, userA, new MessageListener("A", latch));
+        WebSocket wsB = connect(client, addrB, userB, new MessageListener("B", latch));
+
         // 4. Send Messages
         System.out.println("4. Sending Messages...");
-        
-        // A sends to B
-        String msgA = String.format("{\"chatId\":\"%s\",\"messageContent\":\"Hello from A\",\"userId\":\"%s\",\"messageSent\":\"now\"}", chatIdStr, userA);
+        String msgA = String.format(
+                "{\"chatId\":\"%s\",\"messageContent\":\"Hello from A\",\"userId\":\"%s\",\"messageSent\":\"now\"}",
+                chatIdStr, userA);
         wsA.sendText(msgA, true).join();
-        System.out.println("Sent A -> B");
 
-        // B sends to A
-        String msgB = String.format("{\"chatId\":\"%s\",\"messageContent\":\"Hello from B\",\"userId\":\"%s\",\"messageSent\":\"now\"}", chatIdStr, userB);
+        String msgB = String.format(
+                "{\"chatId\":\"%s\",\"messageContent\":\"Hello from B\",\"userId\":\"%s\",\"messageSent\":\"now\"}",
+                chatIdStr, userB);
         wsB.sendText(msgB, true).join();
-        System.out.println("Sent B -> A");
-        
-        // 5. Verify
+
+        // 5. Verify Delivery
         System.out.println("5. Waiting for delivery...");
-        boolean success = latch.await(10, TimeUnit.SECONDS);
-        
-        if (success) {
-            System.out.println("SUCCESS: Both messages received!");
-        } else {
-            System.out.println("FAILURE: Timed out waiting for messages.");
-            System.out.println("Count: " + latch.getCount());
+        boolean delivered = latch.await(10, TimeUnit.SECONDS);
+        if (!delivered) {
+            System.err.println("FAILURE: Messages not received.");
+            System.exit(1);
         }
-        
-        // Graceful close
-        wsA.sendClose(WebSocket.NORMAL_CLOSURE, "Done").join();
-        wsB.sendClose(WebSocket.NORMAL_CLOSURE, "Done").join();
-        
-        System.exit(success ? 0 : 1);
+        System.out.println("Messages Delivery Verified.");
+
+        // 6. Verify Chat List (New Feature)
+        System.out.println("6. Verifying Chat List...");
+        HttpRequest listReq = HttpRequest.newBuilder()
+                .uri(URI.create(HISTORY_URL + "/user/" + userA + "/chats"))
+                .GET().build();
+        HttpResponse<String> listResp = client.send(listReq, HttpResponse.BodyHandlers.ofString());
+        if (!listResp.body().contains(chatIdStr)) {
+            System.err.println("FAILURE: Chat ID not found in user list: " + listResp.body());
+            System.exit(1);
+        }
+        System.out.println("Chat List Verified: " + listResp.body());
+
+        // Cleanup
+        wsA.sendClose(WebSocket.NORMAL_CLOSURE, "Done");
+        wsB.sendClose(WebSocket.NORMAL_CLOSURE, "Done");
+
+        System.out.println("SUCCESS! End-to-End Test Passed.");
     }
-    
+
     private static String getAddress(HttpClient client, UUID userId) throws Exception {
         HttpResponse<String> resp = client.send(
                 HttpRequest.newBuilder().uri(URI.create(REGISTRY_URL + "/" + userId)).GET().build(),
                 HttpResponse.BodyHandlers.ofString());
-        
-        if (resp.statusCode() != 200) {
+        if (resp.statusCode() != 200)
             throw new RuntimeException("Registry failed: " + resp.statusCode());
-        }
-        
-        // Parse JSON: {"serviceId":"...", "address":"..."}
-        Pattern p = Pattern.compile("\"address\"\\s*:\\s*\"([^\"]+)\"");
-        Matcher m = p.matcher(resp.body());
-        if (m.find()) {
+        Matcher m = Pattern.compile("\"address\":\"(.*?)\"").matcher(resp.body());
+        if (m.find())
             return m.group(1);
-        }
-        // If address is null or missing
-        throw new RuntimeException("Address not found in: " + resp.body());
+        throw new RuntimeException("No address in " + resp.body());
     }
-    
-    private static WebSocket connect(HttpClient client, String baseUrl, UUID userId, WebSocket.Listener listener) throws Exception {
-        // Construct WS URI: address + "?userId=" + userId
-        // baseUrl already includes /ws from our fix
-        String uri = baseUrl + "?userId=" + userId;
+
+    private static WebSocket connect(HttpClient client, String url, UUID userId, WebSocket.Listener listener) {
         return client.newWebSocketBuilder()
-                .buildAsync(URI.create(uri), listener)
+                .buildAsync(URI.create(url + "?userId=" + userId), listener)
                 .join();
     }
-    
+
     static class MessageListener implements WebSocket.Listener {
-        private final String name;
-        private final CountDownLatch latch;
-        
+        String name;
+        CountDownLatch latch;
+
         MessageListener(String name, CountDownLatch latch) {
             this.name = name;
             this.latch = latch;
         }
 
-        @Override
-        public void onOpen(WebSocket webSocket) {
+        public void onOpen(WebSocket ws) {
             System.out.println(name + " Connected");
-            WebSocket.Listener.super.onOpen(webSocket);
+            WebSocket.Listener.super.onOpen(ws);
         }
 
-        @Override
-        public CompletionStage<?> onText(WebSocket webSocket, CharSequence data, boolean last) {
+        public CompletionStage<?> onText(WebSocket ws, CharSequence data, boolean last) {
             System.out.println(name + " Received: " + data);
             latch.countDown();
-            return WebSocket.Listener.super.onText(webSocket, data, last);
-        }
-        
-        @Override
-        public void onError(WebSocket webSocket, Throwable error) {
-             System.err.println(name + " Error: " + error.getMessage());
+            return WebSocket.Listener.super.onText(ws, data, last);
         }
     }
 }

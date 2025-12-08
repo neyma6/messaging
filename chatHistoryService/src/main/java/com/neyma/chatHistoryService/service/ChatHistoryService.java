@@ -63,6 +63,14 @@ public class ChatHistoryService {
         return new ChatParticipantsResponse(chatId, userIds);
     }
 
+    public List<UUID> getUserChats(UUID userId) {
+        return chatRepository.findAllByUserId(userId)
+                .stream()
+                .map(Chat::getChatId)
+                .distinct()
+                .collect(Collectors.toList());
+    }
+
     public List<Message> getMessages(UUID chatId, LocalDateTime from, LocalDateTime to) {
         return messageRepository.findByChatIdAndMessageTimeBetween(chatId, from, to);
     }

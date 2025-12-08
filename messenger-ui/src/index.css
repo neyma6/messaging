@@ -1,0 +1,74 @@
+:root {
+  --primary: #6366f1;
+  --primary-hover: #4f46e5;
+  --bg-dark: #0f172a;
+  --bg-card: #1e293b;
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --border: #334155;
+  --input-bg: #334155;
+  --chat-sent: #6366f1;
+  --chat-received: #334155;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: var(--bg-dark);
+  color: var(--text-main);
+  height: 100vh;
+  overflow: hidden;
+}
+
+button { font-family: inherit; }
+* { box-sizing: border-box; }
+
+.container {
+  display: flex;
+  height: 100vh;
+}
+
+.btn {
+  background: var(--primary);
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+.btn:hover { background: var(--primary-hover); transform: translateY(-1px); }
+
+.input {
+  background: var(--input-bg);
+  border: 1px solid var(--border);
+  color: white;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  width: 100%;
+  outline: none;
+}
+.input:focus { border-color: var(--primary); }
+
+.card {
+  background: var(--bg-card);
+  padding: 2rem;
+  border-radius: 1rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 400px;
+}
+
+.auth-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background: radial-gradient(circle at top right, #1e1b4b, var(--bg-dark));
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }

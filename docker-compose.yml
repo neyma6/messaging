@@ -206,6 +206,16 @@ services:
       retries: 20
       start_period: 60s
 
+  messenger-ui:
+    build:
+      context: ./messenger-ui
+      dockerfile: Dockerfile
+    container_name: messenger-ui
+    ports:
+      - "5173:5173"
+    depends_on:
+      - api-gateway
+
 volumes:
   user-db-data:
   chat-history-db-data:

@@ -32,6 +32,8 @@ public class SecurityConfig {
 
         http
                 .csrf(csrf -> csrf.disable())
+                .httpBasic(basic -> basic.disable())
+                .formLogin(form -> form.disable())
                 .authorizeExchange(exchanges -> exchanges
                         .pathMatchers("/users/login", "/users/register").permitAll()
                         .pathMatchers("/gateway/auth/refresh").permitAll() // Refresh endpoint
