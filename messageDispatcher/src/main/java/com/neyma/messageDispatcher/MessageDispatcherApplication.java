@@ -1,13 +1,13 @@
-package com.neyma.messageDispacher;
+package com.neyma.messageDispatcher;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class MessageDispacherApplication {
+public class MessageDispatcherApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(MessageDispacherApplication.class, args);
+		SpringApplication.run(MessageDispatcherApplication.class, args);
 	}
 
 }

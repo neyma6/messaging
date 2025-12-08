@@ -21,6 +21,10 @@ spring:
           uri: ${MESSAGE_SERVICE_URL:http://message-service:8080}
           predicates:
             - Path=/messages/**
+        - id: messaging-service
+          uri: ${MESSAGING_SERVICE_URL:ws://messaging-service:8080}
+          predicates:
+            - Path=/ws/**
 
 springdoc:
   swagger-ui:

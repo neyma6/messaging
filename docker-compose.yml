@@ -26,6 +26,7 @@ services:
     environment:
       - USER_SERVICE_URL=http://user-service:8080
       - SERVICE_REGISTRY_URL=http://service-registry-service:8080
+      - MESSAGING_SERVICE_URL=ws://messaging-service:8080
     depends_on:
       - user-service
       - service-registry-service
@@ -99,7 +100,7 @@ services:
       - CASSANDRA_PORT=9042
       - CASSANDRA_KEYSPACE=chat
       - CASSANDRA_LOCAL_DATACENTER=datacenter1
-      - API_GATEWAY_URL=http://api-gateway:8080
+      - API_GATEWAY_URL=http://chat-history-service:8080
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
@@ -111,6 +112,39 @@ services:
       redis:
         condition: service_started
       kafka:
+        condition: service_started
+
+  message-dispatcher:
+    build:
+      context: .
+      dockerfile: messageDispatcher/Dockerfile
+    container_name: message-dispatcher
+    ports:
+      - "8086:8080"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+    depends_on:
+      redis:
+        condition: service_started
+      kafka:
+        condition: service_started
+
+  messaging-service:
+    build:
+      context: .
+      dockerfile: messagingService/Dockerfile
+    container_name: messaging-service
+    ports:
+      - "8085:8080"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - SERVICE_REGISTRY_URL=http://service-registry-service:8080
+      - MESSAGING_CLIENT_URL=ws://localhost:8085/ws
+    depends_on:
+      redis:
         condition: service_started
 
   kafka:

@@ -10,4 +10,8 @@ public class MessagingServiceApplication {
 		SpringApplication.run(MessagingServiceApplication.class, args);
 	}
 
+	@org.springframework.context.annotation.Bean
+	public java.util.UUID instanceId() {
+		return java.util.UUID.randomUUID();
+	}
 }
