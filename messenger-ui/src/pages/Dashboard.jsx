@@ -52,21 +52,30 @@ export default function Dashboard() {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
 
+    const retryCountRef = useRef(0);
+    const maxRetries = 5;
+
     const connectWebSocket = async () => {
         try {
             // 1. Get Service Address from Registry
             const res = await axios.get(`/api/registry/user/${currentUser.id}`);
             const assignment = res.data;
-            // assignment = { serviceId, address }
-            // address like "ws://localhost:8085/ws"
 
-            if (wsRef.current) wsRef.current.close();
+            if (wsRef.current) {
+                // Remove listener to prevent recursion on intentional close
+                wsRef.current.onclose = null;
+                wsRef.current.close();
+            }
 
             const wsUrl = assignment.address;
             console.log('Connecting to', wsUrl);
             const socket = new WebSocket(wsUrl, [currentUser.id]);
 
-            socket.onopen = () => console.log('WebSocket Connected');
+            socket.onopen = () => {
+                console.log('WebSocket Connected');
+                retryCountRef.current = 0; // Reset retries on success
+            };
+
             socket.onmessage = async (event) => {
                 try {
                     const msg = JSON.parse(event.data);
@@ -101,11 +110,28 @@ export default function Dashboard() {
                 }
             };
 
+            socket.onclose = (event) => {
+                console.warn('WebSocket Disconnected. Code:', event.code, 'Reason:', event.reason);
+                if (retryCountRef.current < maxRetries) {
+                    retryCountRef.current++;
+                    const delay = Math.min(1000 * retryCountRef.current, 5000); // Exponential backoff
+                    console.log(`Reconnecting in ${delay}ms... (Attempt ${retryCountRef.current}/${maxRetries})`);
+                    setTimeout(connectWebSocket, delay);
+                } else {
+                    console.error('Max reconnection attempts reached. Please refresh.');
+                }
+            };
+
             wsRef.current = socket;
             setWs(socket);
 
         } catch (err) {
             console.error('Failed to connect WebSocket', err);
+            // Also retry if initial registry call fails
+            if (retryCountRef.current < maxRetries) {
+                retryCountRef.current++;
+                setTimeout(connectWebSocket, 2000);
+            }
         }
     };
 

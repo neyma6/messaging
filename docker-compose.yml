@@ -147,6 +147,22 @@ services:
       redis:
         condition: service_started
 
+  messaging-service-2:
+    build:
+      context: .
+      dockerfile: messagingService/Dockerfile
+    container_name: messaging-service-2
+    ports:
+      - "8087:8080"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - SERVICE_REGISTRY_URL=http://service-registry-service:8080
+      - MESSAGING_CLIENT_URL=ws://localhost:8087/ws
+    depends_on:
+      redis:
+        condition: service_started
+
   kafka:
     image: confluentinc/cp-kafka:latest
     container_name: kafka

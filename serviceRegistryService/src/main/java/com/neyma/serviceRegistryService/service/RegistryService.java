@@ -84,77 +84,29 @@ public class RegistryService {
     }
 
     private boolean isInstanceAlive(UUID instanceId) {
-        String channel = "system:alive:" + instanceId;
-        byte[] channelBytes = channel.getBytes(StandardCharsets.UTF_8);
+        String key = "service:alive:" + instanceId;
+        String timestampStr = redisTemplate.opsForValue().get(key);
+
+        if (timestampStr == null) {
+            logger.warn("No heartbeat found for instance: {}", instanceId);
+            return false;
+        }
 
         try {
-            Long subscribers = redisTemplate
-                    .execute((org.springframework.data.redis.core.RedisCallback<Long>) connection -> {
-                        Object nativeConnection = connection.getNativeConnection();
-                        java.util.Map<Object, Long> results = null;
+            long lastHeartbeat = Long.parseLong(timestampStr);
+            long now = System.currentTimeMillis();
+            // Threshold: 1.5 seconds (1500ms)
+            long threshold = 1500;
 
-                        try {
-                            // Check for Lettuce driver (Sync)
-                            if (nativeConnection instanceof io.lettuce.core.api.sync.RedisCommands) {
-                                @SuppressWarnings("unchecked")
-                                io.lettuce.core.api.sync.RedisCommands<Object, Object> commands = (io.lettuce.core.api.sync.RedisCommands<Object, Object>) nativeConnection;
-                                results = commands.pubsubNumsub(channelBytes);
-                            }
-                            // Check for Lettuce driver (Async)
-                            else if (nativeConnection instanceof io.lettuce.core.api.async.RedisAsyncCommands) {
-                                @SuppressWarnings("unchecked")
-                                io.lettuce.core.api.async.RedisAsyncCommands<Object, Object> commands = (io.lettuce.core.api.async.RedisAsyncCommands<Object, Object>) nativeConnection;
-                                // Block for result
-                                results = commands.pubsubNumsub(channelBytes).get();
-                            }
-                            // Check for Cluster (Sync)
-                            else if (nativeConnection instanceof io.lettuce.core.cluster.api.sync.RedisClusterCommands) {
-                                @SuppressWarnings("unchecked")
-                                io.lettuce.core.cluster.api.sync.RedisClusterCommands<Object, Object> commands = (io.lettuce.core.cluster.api.sync.RedisClusterCommands<Object, Object>) nativeConnection;
-                                results = commands.pubsubNumsub(channelBytes);
-                            }
-                            // Check for Cluster (Async)
-                            else if (nativeConnection instanceof io.lettuce.core.cluster.api.async.RedisAdvancedClusterAsyncCommands) {
-                                @SuppressWarnings("unchecked")
-                                io.lettuce.core.cluster.api.async.RedisAdvancedClusterAsyncCommands<Object, Object> commands = (io.lettuce.core.cluster.api.async.RedisAdvancedClusterAsyncCommands<Object, Object>) nativeConnection;
-                                results = commands.pubsubNumsub(channelBytes).get();
-                            } else {
-                                logger.error("Unknown Redis connection type: {}",
-                                        nativeConnection.getClass().getName());
-                                return 0L;
-                            }
-                        } catch (Exception e) {
-                            logger.error("Error executing native Redis command", e);
-                            return 0L;
-                        }
+            if (now - lastHeartbeat > threshold) {
+                logger.warn("Instance {} is dead. Last heartbeat: {}, Now: {}", instanceId, lastHeartbeat, now);
+                return false;
+            }
 
-                        if (results == null)
-                            return 0L;
-
-                        if (logger.isDebugEnabled()) {
-                            logger.debug("PUBSUB NUMSUB results: {}", results);
-                        }
-
-                        for (java.util.Map.Entry<Object, Long> entry : results.entrySet()) {
-                            Object key = entry.getKey();
-                            String keyStr = null;
-                            if (key instanceof String) {
-                                keyStr = (String) key;
-                            } else if (key instanceof byte[]) {
-                                keyStr = new String((byte[]) key, StandardCharsets.UTF_8);
-                            }
-
-                            if (channel.equals(keyStr)) {
-                                return entry.getValue();
-                            }
-                        }
-                        return 0L; // Fallback if key not found
-                    });
-            return subscribers != null && subscribers > 0;
-        } catch (Exception e) {
-            logger.error("Failed to check if instance {} is alive", instanceId, e);
-            // Assume alive to maintain service availability during transient errors
             return true;
+        } catch (NumberFormatException e) {
+            logger.error("Invalid timestamp for instance {}: {}", instanceId, timestampStr);
+            return false;
         }
     }
 
