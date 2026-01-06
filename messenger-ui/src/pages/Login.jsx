@@ -12,7 +12,10 @@ export default function Login() {
         e.preventDefault();
         setError('');
         try {
-            const res = await axios.post('/api/users/login', { email, password });
+            const authHeader = 'Basic ' + btoa(email + ':' + password);
+            const res = await axios.post('/api/users/login', {}, {
+                headers: { 'Authorization': authHeader }
+            });
             localStorage.setItem('user', JSON.stringify(res.data));
             navigate('/dashboard');
         } catch (err) {

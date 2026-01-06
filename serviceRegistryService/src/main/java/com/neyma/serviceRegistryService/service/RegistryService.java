@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.nio.charset.StandardCharsets;
 
 @org.springframework.stereotype.Service
 public class RegistryService {
@@ -84,35 +85,76 @@ public class RegistryService {
 
     private boolean isInstanceAlive(UUID instanceId) {
         String channel = "system:alive:" + instanceId;
-        String scriptStr = "local status, result = pcall(redis.call, 'PUBSUB', 'NUMSUB', KEYS[1]); " +
-                "if status then return result[2] else return -1 end";
-
-        org.springframework.data.redis.core.script.DefaultRedisScript<Object> redisScript = new org.springframework.data.redis.core.script.DefaultRedisScript<>(
-                scriptStr, Object.class);
+        byte[] channelBytes = channel.getBytes(StandardCharsets.UTF_8);
 
         try {
-            Object result = redisTemplate.execute(redisScript, java.util.Collections.singletonList(channel));
+            Long subscribers = redisTemplate
+                    .execute((org.springframework.data.redis.core.RedisCallback<Long>) connection -> {
+                        Object nativeConnection = connection.getNativeConnection();
+                        java.util.Map<Object, Long> results = null;
 
-            if (result instanceof Number) {
-                long val = ((Number) result).longValue();
-                if (val == -1) {
-                    logger.error("PUBSUB command not allowed in Lua script.");
-                    return true; // Fallback to alive
-                }
-                return val > 0;
-            }
+                        try {
+                            // Check for Lettuce driver (Sync)
+                            if (nativeConnection instanceof io.lettuce.core.api.sync.RedisCommands) {
+                                @SuppressWarnings("unchecked")
+                                io.lettuce.core.api.sync.RedisCommands<Object, Object> commands = (io.lettuce.core.api.sync.RedisCommands<Object, Object>) nativeConnection;
+                                results = commands.pubsubNumsub(channelBytes);
+                            }
+                            // Check for Lettuce driver (Async)
+                            else if (nativeConnection instanceof io.lettuce.core.api.async.RedisAsyncCommands) {
+                                @SuppressWarnings("unchecked")
+                                io.lettuce.core.api.async.RedisAsyncCommands<Object, Object> commands = (io.lettuce.core.api.async.RedisAsyncCommands<Object, Object>) nativeConnection;
+                                // Block for result
+                                results = commands.pubsubNumsub(channelBytes).get();
+                            }
+                            // Check for Cluster (Sync)
+                            else if (nativeConnection instanceof io.lettuce.core.cluster.api.sync.RedisClusterCommands) {
+                                @SuppressWarnings("unchecked")
+                                io.lettuce.core.cluster.api.sync.RedisClusterCommands<Object, Object> commands = (io.lettuce.core.cluster.api.sync.RedisClusterCommands<Object, Object>) nativeConnection;
+                                results = commands.pubsubNumsub(channelBytes);
+                            }
+                            // Check for Cluster (Async)
+                            else if (nativeConnection instanceof io.lettuce.core.cluster.api.async.RedisAdvancedClusterAsyncCommands) {
+                                @SuppressWarnings("unchecked")
+                                io.lettuce.core.cluster.api.async.RedisAdvancedClusterAsyncCommands<Object, Object> commands = (io.lettuce.core.cluster.api.async.RedisAdvancedClusterAsyncCommands<Object, Object>) nativeConnection;
+                                results = commands.pubsubNumsub(channelBytes).get();
+                            } else {
+                                logger.error("Unknown Redis connection type: {}",
+                                        nativeConnection.getClass().getName());
+                                return 0L;
+                            }
+                        } catch (Exception e) {
+                            logger.error("Error executing native Redis command", e);
+                            return 0L;
+                        }
 
-            logger.warn("Unexpected Lua result type: {}", result != null ? result.getClass().getName() : "null");
-            return false;
+                        if (results == null)
+                            return 0L;
+
+                        if (logger.isDebugEnabled()) {
+                            logger.debug("PUBSUB NUMSUB results: {}", results);
+                        }
+
+                        for (java.util.Map.Entry<Object, Long> entry : results.entrySet()) {
+                            Object key = entry.getKey();
+                            String keyStr = null;
+                            if (key instanceof String) {
+                                keyStr = (String) key;
+                            } else if (key instanceof byte[]) {
+                                keyStr = new String((byte[]) key, StandardCharsets.UTF_8);
+                            }
+
+                            if (channel.equals(keyStr)) {
+                                return entry.getValue();
+                            }
+                        }
+                        return 0L; // Fallback if key not found
+                    });
+            return subscribers != null && subscribers > 0;
         } catch (Exception e) {
-            logger.error("Lua script execution failed", e);
-            // Fallback to alive on error to avoid outage during Redis issues?
-            // Or dead?
-            // If we can't verify, assuming alive (random assignment) is risky but better
-            // than 500 loop?
-            // But getServiceAssignment retries 10 times. If all 'failed', it throws 500.
-            // If script fails, we should distinct.
-            return true; // Fallback
+            logger.error("Failed to check if instance {} is alive", instanceId, e);
+            // Assume alive to maintain service availability during transient errors
+            return true;
         }
     }
 

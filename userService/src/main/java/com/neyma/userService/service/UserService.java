@@ -1,7 +1,5 @@
 package com.neyma.userService.service;
 
-import com.neyma.userService.dto.LoginRequest;
-import com.neyma.userService.dto.RegisterRequest;
 import com.neyma.userService.dto.UserResponse;
 import com.neyma.userService.entity.User;
 import com.neyma.userService.exception.InvalidCredentialsException;
@@ -25,15 +23,15 @@ public class UserService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    public UserResponse register(RegisterRequest request) {
-        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new UserAlreadyExistsException("User with email " + request.getEmail() + " already exists");
+    public UserResponse register(String name, String email, String password) {
+        if (userRepository.findByEmail(email).isPresent()) {
+            throw new UserAlreadyExistsException("User with email " + email + " already exists");
         }
 
         User user = User.builder()
-                .name(request.getName())
-                .email(request.getEmail())
-                .password(passwordEncoder.encode(request.getPassword()))
+                .name(name)
+                .email(email)
+                .password(passwordEncoder.encode(password))
                 .lastLoginTime(LocalDateTime.now())
                 .build();
 
@@ -41,11 +39,11 @@ public class UserService {
         return mapToUserResponse(savedUser);
     }
 
-    public UserResponse login(LoginRequest request) {
-        User user = userRepository.findByEmail(request.getEmail())
+    public UserResponse login(String email, String password) {
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new InvalidCredentialsException("Invalid email or password"));
 
-        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+        if (!passwordEncoder.matches(password, user.getPassword())) {
             throw new InvalidCredentialsException("Invalid email or password");
         }
 

@@ -13,18 +13,30 @@ import org.springframework.web.reactive.socket.WebSocketMessage;
 import org.springframework.web.reactive.socket.WebSocketSession;
 import reactor.core.publisher.Mono;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import reactor.core.publisher.SignalType;
+
 import java.util.UUID;
 
 @Component
-@RequiredArgsConstructor
 public class ChatWebSocketHandler implements WebSocketHandler {
 
     private final ReactiveRedisMessageListenerContainer redisListenerContainer;
-    private final WebClient.Builder webClientBuilder;
     private final ObjectMapper objectMapper;
+    private final WebClient webClient;
 
-    @Value("${message.service.url:http://message-service:8080}")
-    private String messageServiceUrl;
+    private static final Logger logger = LoggerFactory.getLogger(ChatWebSocketHandler.class);
+
+    public ChatWebSocketHandler(
+            ReactiveRedisMessageListenerContainer redisListenerContainer,
+            WebClient.Builder webClientBuilder,
+            ObjectMapper objectMapper,
+            @Value("${message.service.url:http://message-service:8080}") String messageServiceUrl) {
+        this.redisListenerContainer = redisListenerContainer;
+        this.objectMapper = objectMapper;
+        this.webClient = webClientBuilder.baseUrl(messageServiceUrl).build();
+    }
 
     @Override
     public Mono<Void> handle(WebSocketSession session) {
@@ -33,14 +45,17 @@ public class ChatWebSocketHandler implements WebSocketHandler {
             return session.close();
         }
 
+        logger.info("User {} connected", userId);
+
         String channel = "inbox:user:" + userId;
 
-        // Output: Redis -> WebSocket
-        Mono<Void> output = session.send(
-                redisListenerContainer.receive(ChannelTopic.of(channel))
-                        .map(p -> session.textMessage(p.getMessage())));
+        // Input: WebSocket -> MessageRequest -> MessageService
+        // This stream completes when the WebSocket connection is closed by the client.
+        // Create a sink to signal when the input stream (client connection) ends
+        reactor.core.publisher.Sinks.Empty<Void> completionSignal = reactor.core.publisher.Sinks.empty();
 
         // Input: WebSocket -> MessageRequest -> MessageService
+        // This stream completes when the WebSocket connection is closed by the client.
         Mono<Void> input = session.receive()
                 .map(WebSocketMessage::getPayloadAsText)
                 .flatMap(payload -> {
@@ -49,39 +64,68 @@ public class ChatWebSocketHandler implements WebSocketHandler {
                         // Security override (optional but recommended)
                         req.setUserId(userId);
 
-                        return webClientBuilder.build()
-                                .post()
-                                .uri(messageServiceUrl + "/messages")
+                        return webClient.post()
+                                .uri("/messages")
                                 .bodyValue(req)
                                 .retrieve()
                                 .bodyToMono(Void.class)
                                 .onErrorResume(e -> {
-                                    System.err.println("Error forwarding message to MessageService: " + e.getMessage());
-                                    return Mono.empty();
+                                    logger.error("Error forwarding message to MessageService: {}", e.getMessage());
+                                    // Notify user of failure
+                                    String errorMessage = "{\"error\": \"Failed to send\"}";
+                                    return session.send(Mono.just(session.textMessage(errorMessage))).then();
                                 });
                     } catch (Exception e) {
-                        System.err.println("Invalid JSON received: " + e.getMessage());
+                        logger.error("Invalid JSON received: {}", e.getMessage());
                         return Mono.empty();
                     }
                 })
+                .doFinally(signal -> {
+                    if (signal == SignalType.ON_COMPLETE || signal == SignalType.CANCEL
+                            || signal == SignalType.ON_ERROR) {
+                        logger.info("User {} disconnected (Signal: {})", userId, signal);
+                        completionSignal.tryEmitEmpty();
+                    }
+                })
                 .then();
+
+        // Output: Redis -> WebSocket
+        // We use takeUntilOther(completionSignal.asMono()) so we don't double-subscribe
+        // to 'session.receive()'
+        Mono<Void> output = session.send(
+                redisListenerContainer.receive(ChannelTopic.of(channel))
+                        .map(p -> session.textMessage(p.getMessage()))
+                        .takeUntilOther(completionSignal.asMono()));
 
         return Mono.zip(input, output).then();
     }
 
     private UUID extractUserId(WebSocketSession session) {
         try {
-            String query = session.getHandshakeInfo().getUri().getQuery();
-            if (query != null && query.contains("userId=")) {
-                for (String param : query.split("&")) {
-                    if (param.startsWith("userId=")) {
-                        return UUID.fromString(param.split("=")[1]);
+            // Check Sec-WebSocket-Protocol header
+            java.util.List<String> protocols = session.getHandshakeInfo().getHeaders().get("Sec-WebSocket-Protocol");
+            if (protocols != null && !protocols.isEmpty()) {
+                // Browser might send "protocol, other" or just "protocol"
+                // We expect userId as one of the protocols.
+                // Since UUID has hyphens, it's a valid protocol string token usually.
+                String protocolHeader = protocols.get(0);
+                for (String token : protocolHeader.split(",")) {
+                    String trimmed = token.trim();
+                    try {
+                        return UUID.fromString(trimmed);
+                    } catch (IllegalArgumentException e) {
+                        // Not a UUID, try next
                     }
                 }
             }
+
+            // Fallback to query (optional, maybe remove for strict security?)
+            // Keeping it for backward compatibility or direct testing if needed,
+            // but the goal is to use header. Let's remove query param check for security as
+            // requested.
+            return null;
         } catch (Exception e) {
-            // ignore
+            return null;
         }
-        return null;
     }
 }

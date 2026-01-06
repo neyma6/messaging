@@ -17,8 +17,16 @@ public class InstanceHealthReporter {
 
     @PostConstruct
     public void init() {
+        org.slf4j.LoggerFactory.getLogger(InstanceHealthReporter.class)
+                .info("Initializing Health Reporter for instance: {}", instanceId);
         // Subscribe to a unique channel to indicate liveness via PUBSUB NUMSUB
         container.receive(ChannelTopic.of("system:alive:" + instanceId))
+                .doOnSubscribe(s -> org.slf4j.LoggerFactory.getLogger(InstanceHealthReporter.class)
+                        .info("Subscribed to health channel: {}", "system:alive:" + instanceId))
+                .doOnError(e -> org.slf4j.LoggerFactory.getLogger(InstanceHealthReporter.class)
+                        .error("Error in health subscription", e))
+                .doOnCancel(() -> org.slf4j.LoggerFactory.getLogger(InstanceHealthReporter.class)
+                        .warn("Health subscription cancelled"))
                 .subscribe(); // We don't expect messages here, just maintaining the subscription
     }
 }

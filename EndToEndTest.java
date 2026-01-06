@@ -103,7 +103,8 @@ public class EndToEndTest {
 
     private static WebSocket connect(HttpClient client, String url, UUID userId, WebSocket.Listener listener) {
         return client.newWebSocketBuilder()
-                .buildAsync(URI.create(url + "?userId=" + userId), listener)
+                .subprotocols(userId.toString())
+                .buildAsync(URI.create(url), listener)
                 .join();
     }
 

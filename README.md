@@ -1,5 +1,4 @@
-*note: This repo is under development
-# Messenger
+# Neyma Messenger
 
 A distributed, real-time messaging platform built with microservices architecture. This application demonstrates modern software engineering practices including event-driven architecture, WebSocket communication, and containerized deployment.
 
@@ -11,7 +10,7 @@ A distributed, real-time messaging platform built with microservices architectur
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────────────┐
-│                                     MESSENGER                                           │
+│                                    MESSENGER                                       │
 ├─────────────────────────────────────────────────────────────────────────────────────────┤
 │                                                                                          │
 │    ┌──────────────┐                                                                      │
@@ -379,7 +378,7 @@ This script tests:
 
 This project was developed using **vibe coding** - an AI-assisted software development approach where:
 
-- **AI Partner:** Claude (Anthropic) assisted with architecture design, code implementation, and debugging
+- **AI Partner:** Gemini 3 pro assisted with architecture design, code implementation, and debugging
 - **Human Creativity:** Design decisions, feature requirements, and overall vision were guided by human developers
 - **Collaborative Process:** The code evolved through iterative conversations between human intent and AI capability
 

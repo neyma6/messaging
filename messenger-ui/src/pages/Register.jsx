@@ -13,7 +13,10 @@ export default function Register() {
         e.preventDefault();
         setError('');
         try {
-            const res = await axios.post('/api/users/register', { name, email, password });
+            const authHeader = 'Basic ' + btoa(email + ':' + password);
+            const res = await axios.post('/api/users/register', { name }, {
+                headers: { 'Authorization': authHeader }
+            });
             localStorage.setItem('user', JSON.stringify(res.data));
             navigate('/dashboard');
         } catch (err) {

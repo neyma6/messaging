@@ -1,6 +1,5 @@
 package com.neyma.userService.controller;
 
-import com.neyma.userService.dto.LoginRequest;
 import com.neyma.userService.dto.RegisterRequest;
 import com.neyma.userService.dto.UserResponse;
 import com.neyma.userService.exception.InvalidCredentialsException;
@@ -37,8 +36,11 @@ public class UserController {
             @ApiResponse(responseCode = "409", description = "User already exists")
     })
     @PostMapping("/register")
-    public ResponseEntity<UserResponse> register(@Valid @RequestBody RegisterRequest request) {
-        UserResponse user = userService.register(request);
+    public ResponseEntity<UserResponse> register(
+            @RequestHeader("Authorization") String authHeader,
+            @Valid @RequestBody RegisterRequest request) {
+        String[] credentials = extractCredentials(authHeader);
+        UserResponse user = userService.register(request.getName(), credentials[0], credentials[1]);
         return new ResponseEntity<>(user, HttpStatus.CREATED);
     }
 
@@ -48,9 +50,24 @@ public class UserController {
             @ApiResponse(responseCode = "401", description = "Invalid credentials")
     })
     @PostMapping("/login")
-    public ResponseEntity<UserResponse> login(@Valid @RequestBody LoginRequest request) {
-        UserResponse user = userService.login(request);
+    public ResponseEntity<UserResponse> login(@RequestHeader("Authorization") String authHeader) {
+        String[] credentials = extractCredentials(authHeader);
+        UserResponse user = userService.login(credentials[0], credentials[1]);
         return new ResponseEntity<>(user, HttpStatus.OK);
+    }
+
+    private String[] extractCredentials(String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Basic ")) {
+            throw new InvalidCredentialsException("Missing or invalid Authorization header");
+        }
+        String base64Credentials = authHeader.substring(6);
+        byte[] decodedBytes = java.util.Base64.getDecoder().decode(base64Credentials);
+        String decodedString = new String(decodedBytes, java.nio.charset.StandardCharsets.UTF_8);
+        String[] credentials = decodedString.split(":", 2);
+        if (credentials.length != 2) {
+            throw new InvalidCredentialsException("Invalid authentication credentials");
+        }
+        return credentials;
     }
 
     @Operation(summary = "Search users", description = "Find users by name or email similarity (limit 20)")

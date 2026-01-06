@@ -62,9 +62,9 @@ export default function Dashboard() {
 
             if (wsRef.current) wsRef.current.close();
 
-            const wsUrl = `${assignment.address}?userId=${currentUser.id}&token=${currentUser.token}`;
+            const wsUrl = assignment.address;
             console.log('Connecting to', wsUrl);
-            const socket = new WebSocket(wsUrl);
+            const socket = new WebSocket(wsUrl, [currentUser.id]);
 
             socket.onopen = () => console.log('WebSocket Connected');
             socket.onmessage = async (event) => {
